@@ -33,7 +33,8 @@ wait_click = True   # wait click to pass to other stage
 click_error = 0     # error at click 
 IMAGE_SAMPLE  = "images/G1.png"
 IMAGE_MATCH   = "images/G1.png"
-IMAGE_NOMATCH = "images/G2.png"
+IMAGE_NONMATCH = "images/G2.png"
+inter_distance = 100    #distance in px between images in match/nonmatch stage
 
 #Configure GPIO control  
 SUCCESS_LED = 17
@@ -165,6 +166,7 @@ class PerceptionApp(tk.Tk):
             self.destroy()
         print(self.stage)
 
+    # Shows warning stage
     def show_warning(self):
         print("[->]WARNING")
         global square_pos_x, square_pos_y
@@ -175,7 +177,7 @@ class PerceptionApp(tk.Tk):
         square_pos_y = (self.w_hs-square_size)/2
         self.canvas.create_rectangle(square_pos_x, square_pos_y, square_pos_x+square_size, square_pos_y+square_size, fill=colorval) #create blue square
 
-
+    # Shows sample stage
     def show_sample(self):
         print("[->]SAMPLE")
         w_i = 200
@@ -186,28 +188,31 @@ class PerceptionApp(tk.Tk):
         self.canvas.create_image(self.img_pos_w, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
     
+    # Shows Match/Nonmatch stage
     def show_match(self):
         print("[->]MATCH")
         w_i = 200
         h_i = 200
-        inter_distance = 200
         self.img = ImageTk.PhotoImage(Image.open(IMAGE_MATCH))
         self.img_pos_w = (self.w_ws-w_i)/2
         self.img_pos_h = (self.w_hs-h_i)/2
         self.canvas.create_image(self.img_pos_w, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
-        self.img2 = ImageTk.PhotoImage(Image.open(IMAGE_NOMATCH))
+        self.img2 = ImageTk.PhotoImage(Image.open(IMAGE_NONMATCH))
         self.canvas.create_image(self.img_pos_w + 200 + inter_distance, self.img_pos_h, anchor=tk.NW, image=self.img2) 
         self.canvas.image = self.img2
 
+    # Shows blank stage
     def show_blank(self):
         print("[->]BLANK")
         self.canvas.delete("all")
     
+    # Enable mouse listener
     def startMouseListener(self):
         self.mouse_listener = mouse.Listener(on_click=on_click)     #sets mouse listener passing function prior defined
         self.mouse_listener.start()                                 #starts mouse listener
-
+    
+    # Disable mouse listener
     def finishMouseListener(self):
         self.mouse_listener.stop()   #stop listener when program was ended
 

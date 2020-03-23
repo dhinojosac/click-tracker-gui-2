@@ -4,14 +4,29 @@ from PIL import ImageTk, Image
 from pynput import mouse
 from time import sleep
 
-click_error = 0
 
+wait_click = True   # wait click to pass to other stage
+click_error = 0     # error at click 
+IMAGE_SAMPLE  = "images/G1.png"
+IMAGE_MATCH   = "images/G1.png"
+IMAGE_NOMATCH = "images/G2.png"
+
+
+#private variables (do not modify!)
+square_size = 200       # size box in warning
 square_pos_x = None
 square_pos_y = None
-square_size = 200
+clicked = False
+score = 0
+
 
 program1_steps = ["warning","blank","sample","blank","match"]
-program1_times = [2, 1.5, 2, 0.5, 3 ]
+program1_times = [2, 1.5, 2, 0.5, 3]
+
+program2_steps = ["warning","blank","sample","blank","sample","blank","match"]
+program2_times = [2, 1, 2, 0.5, 2, 0.5, 3]
+
+
 
 class Program:
     def __init__(self, steps, times):
@@ -20,9 +35,10 @@ class Program:
         self.len = len(steps)
 
 program1 = Program(program1_steps, program1_times) # Init program 1
+program2 = Program(program2_steps, program2_times) # Init program 2
 
 def on_click(x, y, button, pressed):
-    global square_pos_x, square_pos_y
+    global square_pos_x, square_pos_y, score, clicked, app
     if button == mouse.Button.left and pressed==True:   #check if left click is pressed
         print("Left click: {},{}".format(x,y))          #debug: show cursor position on console
         if x>= square_pos_x-click_error and x<= square_pos_x+square_size+click_error and y>= square_pos_y-click_error and y<= square_pos_y+square_size+click_error : #check if click is inside square+error area.
@@ -30,6 +46,8 @@ def on_click(x, y, button, pressed):
             print(">> CLICK INSIDE TARGET!")
         else:
             print(">> CLICK FAILED!")
+        app.nextStage()
+        app.runStage()
 
     if button == mouse.Button.right and pressed ==True: #check if right click is pressed
         print("Right click: {},{}".format(x,y))         #debug: show cursor position on console
@@ -66,43 +84,49 @@ class PerceptionApp(tk.Tk):
         self.canvas.configure(background='black')    #set background color
         self.canvas.pack()      #add canvas to window screen
         
-        self.setProgram(program1) #set program
+        self.setProgram(program2) #set program
 
         self.runProgram()
 
     def setProgram(self, program):
         self.program = program
-        """
-        for p in range(program.len):
-            print("Programs: {} with times {}".format(program.steps[p],program.times[p]))
-            self.prog2function[program.steps[p]]()
-        """
     
     def runProgram(self):
         if self.program == None:
             print("Error, does't exist program")
         else:
-            self.prog2function[self.program.steps[self.stage]]()
-        self.mupdate()
+            self.runStage()
+        self.mUpdate()
 
-    def mupdate(self):
-        self.counter = self.counter + 1 # ticks every 500 ms
-        print("stage:{} program:{}  counter:{}".format(self.stage, self.program.steps[self.stage], self.counter))
-        if self.counter >= self.program.times[self.stage]*2:
-            print("[!] Next Stage")
-            self.stage += 1
+    def mUpdate(self):
+        if self.program.steps[self.stage] == "blank" or not wait_click:
+            self.counter = self.counter + 1 # ticks every 500 ms
+        print("stage:{} program:{}  counter:{}".format(self.stage, self.program.steps[self.stage], self.counter)) #debug
+        if self.counter >= self.program.times[self.stage]*2: # compare times
+            print("[!] Next Stage") #debug
+            self.nextStage()
             if self.stage>= self.program.len:
+                self.finishMouseListener()
                 self.destroy()
             else:
-                self.prog2function[self.program.steps[self.stage]]()
+                self.runStage()
         
             self.counter = 0
-        self.after(500, self.mupdate)
+        self.after(500, self.mUpdate)
+    
+    def runStage(self):
+        self.prog2function[self.program.steps[self.stage]]()
+    
+    def nextStage(self):
+        self.stage+=1
+        if self.stage>= self.program.len:
+            self.finishMouseListener()
+            self.destroy()
+        print(self.stage)
 
     def show_warning(self):
         print("[->]WARNING")
         global square_pos_x, square_pos_y
-        square_size         = 200   # square width pixels
         colorval            = [255,0,0]
         rcol =  colorval            # square color
         colorval = "#%02x%02x%02x" % (rcol[0], rcol[1], rcol[2]) # rgb to hexadecimal format
@@ -115,7 +139,7 @@ class PerceptionApp(tk.Tk):
         print("[->]SAMPLE")
         w_i = 200
         h_i = 200
-        self.img = ImageTk.PhotoImage(Image.open("images/G1.png"))
+        self.img = ImageTk.PhotoImage(Image.open(IMAGE_SAMPLE))
         self.img_pos_w = (self.w_ws-w_i)/2
         self.img_pos_h = (self.w_hs-h_i)/2
         self.canvas.create_image(self.img_pos_w, self.img_pos_h, anchor=tk.NW, image=self.img) 
@@ -126,12 +150,12 @@ class PerceptionApp(tk.Tk):
         w_i = 200
         h_i = 200
         inter_distance = 200
-        self.img = ImageTk.PhotoImage(Image.open("images/G1.png"))
+        self.img = ImageTk.PhotoImage(Image.open(IMAGE_MATCH))
         self.img_pos_w = (self.w_ws-w_i)/2
         self.img_pos_h = (self.w_hs-h_i)/2
         self.canvas.create_image(self.img_pos_w, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
-        self.img2 = ImageTk.PhotoImage(Image.open("images/G2.png"))
+        self.img2 = ImageTk.PhotoImage(Image.open(IMAGE_NOMATCH))
         self.canvas.create_image(self.img_pos_w + 200 + inter_distance, self.img_pos_h, anchor=tk.NW, image=self.img2) 
         self.canvas.image = self.img2
 
@@ -150,3 +174,4 @@ class PerceptionApp(tk.Tk):
 
 app= PerceptionApp()
 app.mainloop()
+print("[!] Your score is:{}".format(score))

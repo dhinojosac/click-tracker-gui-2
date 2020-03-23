@@ -4,6 +4,26 @@ from PIL import ImageTk, Image
 from pynput import mouse
 from time import sleep
 
+# Program class (do not modify!)
+class Program:
+    def __init__(self, steps, times):
+        self.steps = steps
+        self.times = times
+        self.len = len(steps)
+
+#***********************   EDITABLES   ***********************************
+# PROGRAMS (define your custom programs)
+program1_steps = ["warning","blank","sample","blank","match"]
+program1_times = [2, 1.5, 2, 0.5, 3]
+
+program2_steps = ["warning","blank","sample","blank","sample","blank","match"]
+program2_times = [2, 1, 2, 0.5, 2, 0.5, 3]
+
+program1 = Program(program1_steps, program1_times) # Init program 1
+program2 = Program(program2_steps, program2_times) # Init program 2
+
+# public variables (edit as you wish)
+USE_PROGRAM = program1
 
 wait_click = True   # wait click to pass to other stage
 click_error = 0     # error at click 
@@ -11,6 +31,7 @@ IMAGE_SAMPLE  = "images/G1.png"
 IMAGE_MATCH   = "images/G1.png"
 IMAGE_NOMATCH = "images/G2.png"
 
+#**************************************************************************
 
 #private variables (do not modify!)
 square_size = 200       # size box in warning
@@ -20,23 +41,7 @@ clicked = False
 score = 0
 
 
-program1_steps = ["warning","blank","sample","blank","match"]
-program1_times = [2, 1.5, 2, 0.5, 3]
-
-program2_steps = ["warning","blank","sample","blank","sample","blank","match"]
-program2_times = [2, 1, 2, 0.5, 2, 0.5, 3]
-
-
-
-class Program:
-    def __init__(self, steps, times):
-        self.steps = steps
-        self.times = times
-        self.len = len(steps)
-
-program1 = Program(program1_steps, program1_times) # Init program 1
-program2 = Program(program2_steps, program2_times) # Init program 2
-
+# On click calleable
 def on_click(x, y, button, pressed):
     global square_pos_x, square_pos_y, score, clicked, app
     if button == mouse.Button.left and pressed==True:   #check if left click is pressed
@@ -52,6 +57,7 @@ def on_click(x, y, button, pressed):
     if button == mouse.Button.right and pressed ==True: #check if right click is pressed
         print("Right click: {},{}".format(x,y))         #debug: show cursor position on console
 
+# Application Tk
 class PerceptionApp(tk.Tk):
     
     def __init__(self, *args, **kwargs):
@@ -84,7 +90,7 @@ class PerceptionApp(tk.Tk):
         self.canvas.configure(background='black')    #set background color
         self.canvas.pack()      #add canvas to window screen
         
-        self.setProgram(program2) #set program
+        self.setProgram(USE_PROGRAM) #set program
 
         self.runProgram()
 
@@ -101,7 +107,7 @@ class PerceptionApp(tk.Tk):
     def mUpdate(self):
         if self.program.steps[self.stage] == "blank" or not wait_click:
             self.counter = self.counter + 1 # ticks every 500 ms
-        print("stage:{} program:{}  counter:{}".format(self.stage, self.program.steps[self.stage], self.counter)) #debug
+        #print("stage:{} program:{}  counter:{}".format(self.stage, self.program.steps[self.stage], self.counter)) #debug
         if self.counter >= self.program.times[self.stage]*2: # compare times
             print("[!] Next Stage") #debug
             self.nextStage()

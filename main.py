@@ -2,12 +2,24 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import ImageTk, Image
 from pynput import mouse
+from time import sleep
 
 click_error = 0
 
 square_pos_x = None
 square_pos_y = None
 square_size = 200
+
+program1_steps = ["warning","blank","sample","blank","match"]
+program1_times = [2, 1.5, 2, 0.5, 3 ]
+
+class Program:
+    def __init__(self, steps, times):
+        self.steps = steps
+        self.times = times
+        self.len = len(steps)
+
+program1 = Program(program1_steps, program1_times) # Init program 1
 
 def on_click(x, y, button, pressed):
     global square_pos_x, square_pos_y
@@ -22,13 +34,20 @@ def on_click(x, y, button, pressed):
     if button == mouse.Button.right and pressed ==True: #check if right click is pressed
         print("Right click: {},{}".format(x,y))         #debug: show cursor position on console
 
-
 class PerceptionApp(tk.Tk):
+    
     def __init__(self, *args, **kwargs):
+        self.prog2function = {
+        "warning":  self.show_warning,
+        "blank":    self.show_blank,
+        "sample":   self.show_sample,
+        "match":    self.show_match        
+        }
 
         tk.Tk.__init__(self, *args, **kwargs)
         self.counter = 0 # counter time
         self.waitingClick = True
+        self.stage = 0
         
         self.startMouseListener()
 
@@ -47,24 +66,42 @@ class PerceptionApp(tk.Tk):
         self.canvas.configure(background='black')    #set background color
         self.canvas.pack()      #add canvas to window screen
         
-        self.show_warning()
-    
-    def update(self):
-        self.counter = self.counter + 1
-       
-        if self.counter == 6:
-            self.show_sample()
-        elif self.counter == 12:
-            self.show_match()
-        elif self.counter == 18:
-            self.finishMouseListener()
-            self.destroy()
+        self.setProgram(program1) #set program
 
-        self.after(500, self.update)
+        self.runProgram()
+
+    def setProgram(self, program):
+        self.program = program
+        """
+        for p in range(program.len):
+            print("Programs: {} with times {}".format(program.steps[p],program.times[p]))
+            self.prog2function[program.steps[p]]()
+        """
+    
+    def runProgram(self):
+        if self.program == None:
+            print("Error, does't exist program")
+        else:
+            self.prog2function[self.program.steps[self.stage]]()
+        self.mupdate()
+
+    def mupdate(self):
+        self.counter = self.counter + 1 # ticks every 500 ms
+        print("stage:{} program:{}  counter:{}".format(self.stage, self.program.steps[self.stage], self.counter))
+        if self.counter >= self.program.times[self.stage]*2:
+            print("[!] Next Stage")
+            self.stage += 1
+            if self.stage>= self.program.len:
+                self.destroy()
+            else:
+                self.prog2function[self.program.steps[self.stage]]()
+        
+            self.counter = 0
+        self.after(500, self.mupdate)
 
     def show_warning(self):
+        print("[->]WARNING")
         global square_pos_x, square_pos_y
-        self.canvas.delete("all")
         square_size         = 200   # square width pixels
         colorval            = [255,0,0]
         rcol =  colorval            # square color
@@ -72,10 +109,10 @@ class PerceptionApp(tk.Tk):
         square_pos_x = (self.w_ws-square_size)/2
         square_pos_y = (self.w_hs-square_size)/2
         self.canvas.create_rectangle(square_pos_x, square_pos_y, square_pos_x+square_size, square_pos_y+square_size, fill=colorval) #create blue square
-        self.after(500, self.update)
+
 
     def show_sample(self):
-        self.canvas.delete("all")
+        print("[->]SAMPLE")
         w_i = 200
         h_i = 200
         self.img = ImageTk.PhotoImage(Image.open("images/G1.png"))
@@ -85,16 +122,22 @@ class PerceptionApp(tk.Tk):
         self.canvas.image = self.img
     
     def show_match(self):
+        print("[->]MATCH")
         w_i = 200
         h_i = 200
+        inter_distance = 200
         self.img = ImageTk.PhotoImage(Image.open("images/G1.png"))
         self.img_pos_w = (self.w_ws-w_i)/2
         self.img_pos_h = (self.w_hs-h_i)/2
         self.canvas.create_image(self.img_pos_w, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
         self.img2 = ImageTk.PhotoImage(Image.open("images/G2.png"))
-        self.canvas.create_image(self.img_pos_w + 200, self.img_pos_h, anchor=tk.NW, image=self.img2) 
+        self.canvas.create_image(self.img_pos_w + 200 + inter_distance, self.img_pos_h, anchor=tk.NW, image=self.img2) 
         self.canvas.image = self.img2
+
+    def show_blank(self):
+        print("[->]BLANK")
+        self.canvas.delete("all")
     
     def startMouseListener(self):
         self.mouse_listener = mouse.Listener(on_click=on_click)     #sets mouse listener passing function prior defined
@@ -103,7 +146,7 @@ class PerceptionApp(tk.Tk):
     def finishMouseListener(self):
         self.mouse_listener.stop()   #stop listener when program was ended
 
-
+    
 
 app= PerceptionApp()
 app.mainloop()

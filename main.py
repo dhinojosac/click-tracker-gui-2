@@ -35,6 +35,8 @@ IMAGE_SAMPLE  = "images/G1.png"
 IMAGE_MATCH   = "images/G1.png"
 IMAGE_NONMATCH = "images/G2.png"
 inter_distance = 100    #distance in px between images in match/nonmatch stage
+side_nonmatch  = "left" #left or right
+nonmatch_iterations = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
 
 #Configure GPIO control  
 SUCCESS_LED = 17
@@ -49,6 +51,7 @@ square_pos_x = None
 square_pos_y = None
 clicked = False
 score = 0
+nonmatch_iters = 0
 
 #Function that indicates if the box was pressed or not. The time of the led on
 # is added to the time between the appearence of squares.
@@ -193,13 +196,19 @@ class PerceptionApp(tk.Tk):
         print("[->]MATCH")
         w_i = 200
         h_i = 200
+
         self.img = ImageTk.PhotoImage(Image.open(IMAGE_MATCH))
         self.img_pos_w = (self.w_ws-w_i)/2
         self.img_pos_h = (self.w_hs-h_i)/2
         self.canvas.create_image(self.img_pos_w, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
         self.img2 = ImageTk.PhotoImage(Image.open(IMAGE_NONMATCH))
-        self.canvas.create_image(self.img_pos_w + 200 + inter_distance, self.img_pos_h, anchor=tk.NW, image=self.img2) 
+        
+        if side_nonmatch == "left":
+            pos_nonmatch = self.img_pos_w - 200 - inter_distance
+        else:
+            pos_nonmatch = self.img_pos_w + 200 + inter_distance
+        self.canvas.create_image(pos_nonmatch, self.img_pos_h, anchor=tk.NW, image=self.img2) 
         self.canvas.image = self.img2
 
     # Shows blank stage

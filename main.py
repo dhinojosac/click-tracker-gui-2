@@ -30,6 +30,7 @@ program2 = Program(program2_steps, program2_times) # Init program 2
 USE_PROGRAM = program1
 
 wait_click = True   # wait click to pass to other stage
+success_pass = True # pass to next stage only if you click in the box
 click_error = 0     # error at click 
 IMAGE_SAMPLE  = "images/G1.png"
 IMAGE_MATCH   = "images/G1.png"
@@ -87,10 +88,13 @@ def on_click(x, y, button, pressed):
             score=score+1                                   #add 1 to score if is a right click, inside a square+error area.
             print(">> CLICK INSIDE TARGET!")
             led_success()
+            if success_pass:
+                app.nextStage()
         else:
             print(">> CLICK FAILED!")
             led_failed()
-        app.nextStage()
+        if not success_pass:
+            app.nextStage()
         app.runStage()
 
     if button == mouse.Button.right and pressed ==True: #check if right click is pressed

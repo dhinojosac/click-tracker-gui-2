@@ -36,8 +36,10 @@ IMAGE_SAMPLE  = "images/G1.png"
 IMAGE_MATCH   = "images/G1.png"
 IMAGE_NONMATCH = "images/G2.png"
 inter_distance = 100    #distance in px between images in match/nonmatch stage
-side_nonmatch  = "left" #left or right
+side_nonmatch  = "right" #left or right
+nonmatch_iterations_enable = False #enable iteration in nonmatch stage using differents distances 
 nonmatch_iterations = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
+nonmatch_iterations_steps = 7 #number of iterations in nonmatch stage
 
 #Configure GPIO control  
 SUCCESS_LED = 17
@@ -88,7 +90,11 @@ def on_click(x, y, button, pressed):
             score=score+1                                   #add 1 to score if is a right click, inside a square+error area.
             print(">> CLICK INSIDE TARGET!")
             led_success()
-            if success_pass:
+            if nonmatch_iterations_enable and app.program.steps[app.stage] == "match": #interation in match/nonmatch stage
+                app.addIterMatch()
+                if app.niter >= nonmatch_iterations_steps:
+                    app.destroy()
+            elif success_pass:
                 app.nextStage()
         else:
             print(">> CLICK FAILED!")
@@ -115,7 +121,8 @@ class PerceptionApp(tk.Tk):
         self.counter = 0 # counter time
         self.waitingClick = True
         self.stage = 0
-        
+        self.niter = 0
+
         self.startMouseListener()
 
         tk.Tk.iconbitmap(self, default="")      # set icon 16x16
@@ -136,6 +143,9 @@ class PerceptionApp(tk.Tk):
         self.setProgram(USE_PROGRAM) #set program
 
         self.runProgram()
+    
+    def addIterMatch(self):
+        self.niter+=1
 
     def setProgram(self, program):
         self.program = program
@@ -207,11 +217,16 @@ class PerceptionApp(tk.Tk):
         self.canvas.create_image(self.img_pos_w, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
         self.img2 = ImageTk.PhotoImage(Image.open(IMAGE_NONMATCH))
+
+        if nonmatch_iterations_enable:
+            distance = nonmatch_iterations[self.niter] 
+        else:
+            distance = inter_distance
         
         if side_nonmatch == "left":
-            pos_nonmatch = self.img_pos_w - 200 - inter_distance
+            pos_nonmatch = self.img_pos_w - 200 - distance
         else:
-            pos_nonmatch = self.img_pos_w + 200 + inter_distance
+            pos_nonmatch = self.img_pos_w + 200 + distance
         self.canvas.create_image(pos_nonmatch, self.img_pos_h, anchor=tk.NW, image=self.img2) 
         self.canvas.image = self.img2
 
@@ -233,4 +248,6 @@ class PerceptionApp(tk.Tk):
 
 app= PerceptionApp()
 app.mainloop()
+print("\n*****************************************")
 print("[!] Your score is:{}".format(score))
+print("*****************************************\n")

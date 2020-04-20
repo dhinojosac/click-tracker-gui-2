@@ -3,6 +3,7 @@ from tkinter import ttk
 from PIL import ImageTk, Image
 from pynput import mouse
 from time import sleep
+import random
 
 IS_PC = True    # debug in pc
 if not IS_PC:
@@ -36,6 +37,7 @@ IMAGE_SAMPLE  = "images/G1.png"
 IMAGE_MATCH   = "images/G1.png"
 IMAGE_NONMATCH = "images/G2.png"
 side_nonmatch  = "right" #left or right
+side_nonmatch_random = False # to set random side on nonmatch image
 nonmatch_distance = 250 #distance nonmatch image 250 px
 match_iterations_enable = True #enable iteration in nonmatch stage using differents distances 
 match_iterations = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
@@ -54,6 +56,13 @@ square_pos_y = None
 clicked = False
 score = 0
 nonmatch_iters = 0
+sides = ["left", "right"]
+
+#Set side random if sode_nonmatch_random is true
+if side_nonmatch_random == True:
+    local_side_nonmatch = random.choice(sides)
+else:
+    local_side_nonmatch = side_nonmatch
 
 #Function that indicates if the box was pressed or not. The time of the led on
 # is added to the time between the appearence of squares.
@@ -217,7 +226,7 @@ class PerceptionApp(tk.Tk):
         square_pos_y = self.img_pos_h
         #set match image
         if match_iterations_enable:
-            if side_nonmatch == "left":
+            if local_side_nonmatch == "left":
                 square_pos_x =  self.img_pos_w  + match_iterations[self.niter] 
             else:
                 square_pos_x =  self.img_pos_w  - match_iterations[self.niter] 
@@ -228,7 +237,7 @@ class PerceptionApp(tk.Tk):
         self.canvas.image = self.img
 
         #set nonmatch image
-        if side_nonmatch == "left":
+        if local_side_nonmatch == "left":
             pos_nonmatch = self.img_pos_w - nonmatch_distance
         else:
             pos_nonmatch = self.img_pos_w + nonmatch_distance

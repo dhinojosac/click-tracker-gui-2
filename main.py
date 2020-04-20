@@ -222,7 +222,7 @@ class PerceptionApp(tk.Tk):
             else:
                 square_pos_x =  self.img_pos_w  - match_iterations[self.niter] 
         else:
-            square_pos_x = inter_distance
+            square_pos_x = 0
         self.img = ImageTk.PhotoImage(Image.open(IMAGE_MATCH))
         self.canvas.create_image(square_pos_x, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img

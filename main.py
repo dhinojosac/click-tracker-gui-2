@@ -34,12 +34,10 @@ wait_click = True   # wait click to pass to other stage
 success_pass = True # pass to next stage only if you click in the box
 click_error = 0     # error at click 
 
-IMAGE_SAMPLE  = "images/G1.png"
-IMAGE_MATCH   = "images/G1.png"
-IMAGE_NONMATCH = "images/G2.png"
-IMAGE_SAMPLE_SEC  = "images/G3.png"
-IMAGE_MATCH_SEC   = "images/G3.png"
-IMAGE_NONMATCH_SEC = "images/G4.png"
+IMAGE_MATCH_PRIM    = "images/G1.png"
+IMAGE_NONMATCH_PRIM = "images/G2.png"
+IMAGE_MATCH_SEC     = "images/G3.png"
+IMAGE_NONMATCH_SEC  = "images/G4.png"
 
 side_nonmatch_random = True # to set random side on nonmatch image
 side_nonmatch  = "right" #left or right
@@ -48,9 +46,12 @@ nonmatch_distance = 250 #distance nonmatch image 250 px
 match_iterations_enable = True #enable iteration in nonmatch stage using differents distances 
 match_iterations = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
 
-trials = 3
-trials_ratio =  [2,1]
-fix_side_trials = False  #fix side after each trial
+#trials
+primary_pair_images = [IMAGE_MATCH_PRIM, IMAGE_NONMATCH_PRIM]
+secondary_pair_images = [IMAGE_MATCH_SEC, IMAGE_NONMATCH_SEC]
+trials = 3                     #Number of trial of a session [Set 1 for 1 trial]
+trials_ratio =  [2,1]           #ratio of trials [ only first parameter is taken into account to get ratio]
+fix_side_trials = False         #fix side after each trial
 
 #Configure GPIO control  
 SUCCESS_LED = 17
@@ -106,6 +107,8 @@ def on_click(x, y, button, pressed):
                 app.addIterMatch()
                 if app.niter >= len(match_iterations):
                     app.trials+=1
+                    if app.trials >= app.ratio:
+                        app.setImages(secondary_pair_images)
                     if app.trials>= trials:
                         app.destroy()
                     if fix_side_trials != True:
@@ -145,6 +148,8 @@ class PerceptionApp(tk.Tk):
 
         self.startMouseListener()
 
+        self.getRatioTrials()
+        self.setImages(primary_pair_images)
         self.calculateSide()
 
         tk.Tk.iconbitmap(self, default="")      # set icon 16x16
@@ -165,12 +170,19 @@ class PerceptionApp(tk.Tk):
         self.setProgram(USE_PROGRAM) #set program
 
         self.runProgram()
+
+    def setImages(self, images_add):
+        self.match_image = images_add[0]
+        self.nonmatch_image = images_add[1]
     
     def restartTrialState(self):
         self.stage = 0
         self.niter = 0
         self.counter = 0
         self.show_blank()
+
+    def getRatioTrials(self):
+        self.ratio = trials_ratio[0]
 
     
     def addIterMatch(self):
@@ -235,7 +247,7 @@ class PerceptionApp(tk.Tk):
         print("[->]SAMPLE")
         w_i = 200
         h_i = 200
-        self.img = ImageTk.PhotoImage(Image.open(IMAGE_SAMPLE))
+        self.img = ImageTk.PhotoImage(Image.open(self.match_image))
         self.img_pos_w = (self.w_ws-w_i)/2
         self.img_pos_h = (self.w_hs-h_i)/2
         self.canvas.create_image(self.img_pos_w, self.img_pos_h, anchor=tk.NW, image=self.img) 
@@ -261,7 +273,7 @@ class PerceptionApp(tk.Tk):
                 square_pos_x =  self.img_pos_w  - match_iterations[self.niter] 
         else:
             square_pos_x = 0
-        self.img = ImageTk.PhotoImage(Image.open(IMAGE_MATCH))
+        self.img = ImageTk.PhotoImage(Image.open(self.match_image))
         self.canvas.create_image(square_pos_x, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
 
@@ -271,7 +283,7 @@ class PerceptionApp(tk.Tk):
         else:
             pos_nonmatch = self.img_pos_w + nonmatch_distance
 
-        self.img2 = ImageTk.PhotoImage(Image.open(IMAGE_NONMATCH))
+        self.img2 = ImageTk.PhotoImage(Image.open(self.nonmatch_image))
         self.canvas.create_image(pos_nonmatch, self.img_pos_h, anchor=tk.NW, image=self.img2) 
         self.canvas.image = self.img2
         

@@ -28,19 +28,29 @@ program1 = Program(program1_steps, program1_times) # Init program 1
 program2 = Program(program2_steps, program2_times) # Init program 2
 
 # public variables (edit as you wish)
-USE_PROGRAM = program1
+USE_PROGRAM = program2
 
 wait_click = True   # wait click to pass to other stage
 success_pass = True # pass to next stage only if you click in the box
 click_error = 0     # error at click 
+
 IMAGE_SAMPLE  = "images/G1.png"
 IMAGE_MATCH   = "images/G1.png"
 IMAGE_NONMATCH = "images/G2.png"
+IMAGE_SAMPLE_SEC  = "images/G3.png"
+IMAGE_MATCH_SEC   = "images/G3.png"
+IMAGE_NONMATCH_SEC = "images/G4.png"
+
+side_nonmatch_random = True # to set random side on nonmatch image
 side_nonmatch  = "right" #left or right
-side_nonmatch_random = False # to set random side on nonmatch image
+
 nonmatch_distance = 250 #distance nonmatch image 250 px
 match_iterations_enable = True #enable iteration in nonmatch stage using differents distances 
 match_iterations = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
+
+trials = 3
+trials_ratio =  [2,1]
+fix_side_trials = False  #fix side after each trial
 
 #Configure GPIO control  
 SUCCESS_LED = 17
@@ -57,12 +67,6 @@ clicked = False
 score = 0
 nonmatch_iters = 0
 sides = ["left", "right"]
-
-#Set side random if sode_nonmatch_random is true
-if side_nonmatch_random == True:
-    local_side_nonmatch = random.choice(sides)
-else:
-    local_side_nonmatch = side_nonmatch
 
 #Function that indicates if the box was pressed or not. The time of the led on
 # is added to the time between the appearence of squares.
@@ -101,7 +105,14 @@ def on_click(x, y, button, pressed):
             if match_iterations_enable and app.program.steps[app.stage] == "match": #interation in match/nonmatch stage
                 app.addIterMatch()
                 if app.niter >= len(match_iterations):
-                    app.destroy()
+                    app.trials+=1
+                    if app.trials>= trials:
+                        app.destroy()
+                    if fix_side_trials != True:
+                        app.calculateSide()
+                    app.restartTrialState()
+                    
+
             elif success_pass:
                 app.nextStage()
         else:
@@ -130,8 +141,11 @@ class PerceptionApp(tk.Tk):
         self.waitingClick = True
         self.stage = 0
         self.niter = 0
+        self.trials = 0
 
         self.startMouseListener()
+
+        self.calculateSide()
 
         tk.Tk.iconbitmap(self, default="")      # set icon 16x16
         tk.Tk.wm_title(self, "Perception App")  # set title
@@ -152,6 +166,13 @@ class PerceptionApp(tk.Tk):
 
         self.runProgram()
     
+    def restartTrialState(self):
+        self.stage = 0
+        self.niter = 0
+        self.counter = 0
+        self.show_blank()
+
+    
     def addIterMatch(self):
         self.niter+=1
 
@@ -164,6 +185,13 @@ class PerceptionApp(tk.Tk):
         else:
             self.runStage()
         self.mUpdate()
+    
+    def calculateSide(self):
+        #Set side random if sode_nonmatch_random is true
+        if side_nonmatch_random == True:
+            self.side_nonmatch = random.choice(sides)
+        else:
+            self.side_nonmatch = side_nonmatch
 
     def mUpdate(self):
         if self.program.steps[self.stage] == "blank" or not wait_click:
@@ -172,7 +200,7 @@ class PerceptionApp(tk.Tk):
         if self.counter >= self.program.times[self.stage]*2: # compare times
             print("[!] Next Stage") #debug
             self.nextStage()
-            if self.stage>= self.program.len:
+            if self.stage>= self.program.len: #check stages limit
                 self.finishMouseListener()
                 self.destroy()
             else:
@@ -224,9 +252,10 @@ class PerceptionApp(tk.Tk):
         self.img_pos_w = (self.w_ws-w_i)/2
         self.img_pos_h = (self.w_hs-h_i)/2
         square_pos_y = self.img_pos_h
+
         #set match image
         if match_iterations_enable:
-            if local_side_nonmatch == "left":
+            if self.side_nonmatch == "left":
                 square_pos_x =  self.img_pos_w  + match_iterations[self.niter] 
             else:
                 square_pos_x =  self.img_pos_w  - match_iterations[self.niter] 
@@ -237,7 +266,7 @@ class PerceptionApp(tk.Tk):
         self.canvas.image = self.img
 
         #set nonmatch image
-        if local_side_nonmatch == "left":
+        if self.side_nonmatch == "left":
             pos_nonmatch = self.img_pos_w - nonmatch_distance
         else:
             pos_nonmatch = self.img_pos_w + nonmatch_distance
@@ -247,9 +276,6 @@ class PerceptionApp(tk.Tk):
         self.canvas.image = self.img2
         
         
-
-
-
     # Shows blank stage
     def show_blank(self):
         print("[->]BLANK")

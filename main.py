@@ -35,11 +35,10 @@ click_error = 0     # error at click
 IMAGE_SAMPLE  = "images/G1.png"
 IMAGE_MATCH   = "images/G1.png"
 IMAGE_NONMATCH = "images/G2.png"
-inter_distance = 100    #distance in px between images in match/nonmatch stage
 side_nonmatch  = "right" #left or right
-nonmatch_iterations_enable = False #enable iteration in nonmatch stage using differents distances 
-nonmatch_iterations = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
-nonmatch_iterations_steps = 7 #number of iterations in nonmatch stage
+nonmatch_distance = 250 #distance nonmatch image 250 px
+match_iterations_enable = True #enable iteration in nonmatch stage using differents distances 
+match_iterations = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
 
 #Configure GPIO control  
 SUCCESS_LED = 17
@@ -90,9 +89,9 @@ def on_click(x, y, button, pressed):
             score=score+1                                   #add 1 to score if is a right click, inside a square+error area.
             print(">> CLICK INSIDE TARGET!")
             led_success()
-            if nonmatch_iterations_enable and app.program.steps[app.stage] == "match": #interation in match/nonmatch stage
+            if match_iterations_enable and app.program.steps[app.stage] == "match": #interation in match/nonmatch stage
                 app.addIterMatch()
-                if app.niter >= nonmatch_iterations_steps:
+                if app.niter >= len(match_iterations):
                     app.destroy()
             elif success_pass:
                 app.nextStage()
@@ -207,28 +206,40 @@ class PerceptionApp(tk.Tk):
     
     # Shows Match/Nonmatch stage
     def show_match(self):
+        global square_pos_x, square_pos_y
         print("[->]MATCH")
         w_i = 200
         h_i = 200
 
-        self.img = ImageTk.PhotoImage(Image.open(IMAGE_MATCH))
+        #center position 
         self.img_pos_w = (self.w_ws-w_i)/2
         self.img_pos_h = (self.w_hs-h_i)/2
-        self.canvas.create_image(self.img_pos_w, self.img_pos_h, anchor=tk.NW, image=self.img) 
+        square_pos_y = self.img_pos_h
+        #set match image
+        if match_iterations_enable:
+            if side_nonmatch == "left":
+                square_pos_x =  self.img_pos_w  + match_iterations[self.niter] 
+            else:
+                square_pos_x =  self.img_pos_w  - match_iterations[self.niter] 
+        else:
+            square_pos_x = inter_distance
+        self.img = ImageTk.PhotoImage(Image.open(IMAGE_MATCH))
+        self.canvas.create_image(square_pos_x, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
-        self.img2 = ImageTk.PhotoImage(Image.open(IMAGE_NONMATCH))
 
-        if nonmatch_iterations_enable:
-            distance = nonmatch_iterations[self.niter] 
-        else:
-            distance = inter_distance
-        
+        #set nonmatch image
         if side_nonmatch == "left":
-            pos_nonmatch = self.img_pos_w - 200 - distance
+            pos_nonmatch = self.img_pos_w - nonmatch_distance
         else:
-            pos_nonmatch = self.img_pos_w + 200 + distance
+            pos_nonmatch = self.img_pos_w + nonmatch_distance
+
+        self.img2 = ImageTk.PhotoImage(Image.open(IMAGE_NONMATCH))
         self.canvas.create_image(pos_nonmatch, self.img_pos_h, anchor=tk.NW, image=self.img2) 
         self.canvas.image = self.img2
+        
+        
+
+
 
     # Shows blank stage
     def show_blank(self):

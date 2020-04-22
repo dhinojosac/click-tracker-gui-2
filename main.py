@@ -47,10 +47,11 @@ match_iterations_enable = True #enable iteration in nonmatch stage using differe
 match_iterations = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
 
 #trials
-primary_pair_images = [IMAGE_MATCH_PRIM, IMAGE_NONMATCH_PRIM]
-secondary_pair_images = [IMAGE_MATCH_SEC, IMAGE_NONMATCH_SEC]
-trials = 3                     #Number of trial of a session [Set 1 for 1 trial]
-trials_ratio =  [2,1]           #ratio of trials [ only first parameter is taken into account to get ratio]
+primary_pair_images = [IMAGE_MATCH_PRIM, IMAGE_NONMATCH_PRIM] #pair of images ratio 1
+secondary_pair_images = [IMAGE_MATCH_SEC, IMAGE_NONMATCH_SEC] #pair of images ratio 2
+trials = 5                      #Number of trial of a session [Set 1 for 1 trial]
+trials_ratio =  [3,2]           #ratio of trials [ only first parameter is taken into account to get ratio]
+trials_ratio_random = True     #ratio secuencial or random
 fix_side_trials = False         #fix side after each trial
 
 #Configure GPIO control  
@@ -149,6 +150,9 @@ class PerceptionApp(tk.Tk):
         self.startMouseListener()
 
         self.getRatioTrials()
+        self.setRandomRatio()
+        self.getTrialImage()
+
         self.setImages(primary_pair_images)
         self.calculateSide()
 
@@ -170,6 +174,18 @@ class PerceptionApp(tk.Tk):
         self.setProgram(USE_PROGRAM) #set program
 
         self.runProgram()
+    
+    def setRandomRatio(self):
+        if trials_ratio_random:
+            self.session_images = [1] * self.ratio + [2] * (trials-self.ratio)
+            random.shuffle(self.session_images)
+            print(self.session_images)
+    
+    def getTrialImage(self):
+        if self.session_images[self.trials] == 1:
+            self.setImages(primary_pair_images)
+        elif self.session_images[self.trials]==2:
+            self.setImages(secondary_pair_images)
 
     def setImages(self, images_add):
         self.match_image = images_add[0]
@@ -180,6 +196,8 @@ class PerceptionApp(tk.Tk):
         self.niter = 0
         self.counter = 0
         self.show_blank()
+        self.getTrialImage()
+
 
     def getRatioTrials(self):
         self.ratio = trials_ratio[0]

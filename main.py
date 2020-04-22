@@ -51,7 +51,7 @@ primary_pair_images = [IMAGE_MATCH_PRIM, IMAGE_NONMATCH_PRIM] #pair of images ra
 secondary_pair_images = [IMAGE_MATCH_SEC, IMAGE_NONMATCH_SEC] #pair of images ratio 2
 trials = 5                      #Number of trial of a session [Set 1 for 1 trial]
 trials_ratio =  [3,2]           #ratio of trials [ only first parameter is taken into account to get ratio]
-trials_ratio_random = True     #ratio secuencial or random
+trials_ratio_random = True      #ratio secuencial or random
 fix_side_trials = False         #fix side after each trial
 
 #Configure GPIO control  
@@ -149,9 +149,9 @@ class PerceptionApp(tk.Tk):
 
         self.startMouseListener()
 
-        self.getRatioTrials()
-        self.setRandomRatio()
-        self.getTrialImage()
+        self.getRatioTrials() #get ratio 
+        self.setRandomRatio() #set array of images if it's set random ratio
+        self.getTrialImage()  #get image of ratio. Primary or secondary images
 
         self.setImages(primary_pair_images)
         self.calculateSide()

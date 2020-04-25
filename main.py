@@ -28,41 +28,42 @@ program1 = Program(program1_steps, program1_times) # Init program 1
 program2 = Program(program2_steps, program2_times) # Init program 2
 
 # public variables (edit as you wish)
-USE_PROGRAM = program2
+USE_PROGRAM = program1
 
-wait_click = True   # wait click to pass to other stage
+wait_click   = True   # wait click to pass to other stage
 success_pass = True # pass to next stage only if you click in the box
-click_error = 0     # error at click 
+click_error  = 0     # error at click in pixels (clickbox)
 
 IMAGE_MATCH_PRIM    = "images/G1.png"
 IMAGE_NONMATCH_PRIM = "images/G2.png"
 IMAGE_MATCH_SEC     = "images/G3.png"
 IMAGE_NONMATCH_SEC  = "images/G4.png"
 
-side_nonmatch_random = True # to set random side on nonmatch image
-side_nonmatch  = "right" #left or right
+side_nonmatch_random = True     # to set random side on nonmatch image
+side_nonmatch  = "right"        #left or right, when side_nonmatch_random is False
 
-nonmatch_distance = 250 #distance nonmatch image 250 px
-match_iterations_enable = True #enable iteration in nonmatch stage using differents distances 
-match_iterations = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
+match_iterations_enable = True  #enable iteration in nonmatch stage using differents distances 
+nonmatch_distance       = 100    #fixed distance nonmatch image 250 px, when match_iterations_enable is False
+match_iterations        = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
 
 #trials
-primary_pair_images = [IMAGE_MATCH_PRIM, IMAGE_NONMATCH_PRIM] #pair of images ratio 1
-secondary_pair_images = [IMAGE_MATCH_SEC, IMAGE_NONMATCH_SEC] #pair of images ratio 2
-trials = 5                      #Number of trial of a session [Set 1 for 1 trial]
-trials_ratio =  [3,2]           #ratio of trials [ only first parameter is taken into account to get ratio]
-trials_ratio_random = True      #ratio secuencial or random
-fix_side_trials = False         #fix side after each trial
+primary_pair_images     = [IMAGE_MATCH_PRIM, IMAGE_NONMATCH_PRIM]   #pair of images ratio 1
+secondary_pair_images   = [IMAGE_MATCH_SEC, IMAGE_NONMATCH_SEC]     #pair of images ratio 2
+trials                  = 5                         #Number of trial of a session [Set 1 for 1 trial]
+trials_ratio            =  [3,2]                    #ratio of trials [ only first parameter is taken into account to get ratio]
+trials_ratio_random     = True                      #ratio secuencial or random
+fix_side_trials         = False                     #fix side after each trial
+time_intertrieals       =  3                        #time in secods between trials
 
 #Configure GPIO control  
-SUCCESS_LED = 17
-FAIL_LED =27
+SUCCESS_LED = 17          # Set pin 17 succes led
+FAIL_LED    = 27          # Set pin 27 fail led
 TIME_LED_ON = 0.2         # Time led on 
 
 #**************************************************************************
 
-#private variables (do not modify!)
-square_size = 200       # size box in warning
+# Private variables (Do not modify!)
+square_size = 200       # size click box in warning
 square_pos_x = None
 square_pos_y = None
 clicked = False
@@ -95,25 +96,26 @@ def led_success():
 def led_failed():
     turn_on_led("FAIL")
 
-# On click calleable
+# On click Callback
 def on_click(x, y, button, pressed):
     global square_pos_x, square_pos_y, score, clicked, app
     if button == mouse.Button.left and pressed==True:   #check if left click is pressed
         print("Left click: {},{}".format(x,y))          #debug: show cursor position on console
+        print("Box in :{},{}".format(square_pos_x, square_pos_y)) #debug boxclick
         if x>= square_pos_x-click_error and x<= square_pos_x+square_size+click_error and y>= square_pos_y-click_error and y<= square_pos_y+square_size+click_error : #check if click is inside square+error area.
             score=score+1                                   #add 1 to score if is a right click, inside a square+error area.
             print(">> CLICK INSIDE TARGET!")
             led_success()
             if match_iterations_enable and app.program.steps[app.stage] == "match": #interation in match/nonmatch stage
                 app.addIterMatch()
-                if app.niter >= len(match_iterations):
+                if app.niter >= len(match_iterations):  # detects max iterations
                     app.trials+=1
-                    if app.trials >= app.ratio:
-                        app.setImages(secondary_pair_images)
-                    if app.trials>= trials:
+                    if app.trials >= app.ratio:        
+                        app.setImages(secondary_pair_images) 
+                    if app.trials>= trials:             # detects max trials to end program
                         app.destroy()
-                    if fix_side_trials != True:
-                        app.calculateSide()
+                    if fix_side_trials != True:         # if not fix side between trials
+                        app.calculateSide()         # recalculate random side
                     app.restartTrialState()
                     
 
@@ -141,11 +143,11 @@ class PerceptionApp(tk.Tk):
         }
 
         tk.Tk.__init__(self, *args, **kwargs)
-        self.counter = 0 # counter time
+        self.counter = 0    # counter time, every tick is 500 ms
         self.waitingClick = True
-        self.stage = 0
-        self.niter = 0
-        self.trials = 0
+        self.stage = 0      # Store current stage number
+        self.niter = 0      # Store current iteration number
+        self.trials = 0     # Store current trial number
 
         self.startMouseListener()
 
@@ -161,6 +163,7 @@ class PerceptionApp(tk.Tk):
         ws = self.winfo_screenwidth()           # gets the width of screen
         hs = self.winfo_screenheight()          # gets the heigth of screen
         print("[!] SCREEN SIZE {}x{}".format(ws,hs))
+        print("SIDE NONMATCH: {}".format(self.side_nonmatch))
         self.attributes("-fullscreen", True)    # set full screen
         self.configure(background='black')
         self.w_ws = ws
@@ -196,12 +199,12 @@ class PerceptionApp(tk.Tk):
         self.niter = 0
         self.counter = 0
         self.show_blank()
+        sleep(time_intertrieals) # time between trials
         self.getTrialImage()
 
 
     def getRatioTrials(self):
         self.ratio = trials_ratio[0]
-
     
     def addIterMatch(self):
         self.niter+=1
@@ -263,11 +266,9 @@ class PerceptionApp(tk.Tk):
     # Shows sample stage
     def show_sample(self):
         print("[->]SAMPLE")
-        w_i = 200
-        h_i = 200
         self.img = ImageTk.PhotoImage(Image.open(self.match_image))
-        self.img_pos_w = (self.w_ws-w_i)/2
-        self.img_pos_h = (self.w_hs-h_i)/2
+        self.img_pos_w = (self.w_ws - square_size)/2
+        self.img_pos_h = (self.w_hs - square_size)/2
         self.canvas.create_image(self.img_pos_w, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
     
@@ -275,31 +276,34 @@ class PerceptionApp(tk.Tk):
     def show_match(self):
         global square_pos_x, square_pos_y
         print("[->]MATCH")
-        w_i = 200
-        h_i = 200
 
         #center position 
-        self.img_pos_w = (self.w_ws-w_i)/2
-        self.img_pos_h = (self.w_hs-h_i)/2
+        self.img_pos_w = (self.w_ws - square_size)/2
+        self.img_pos_h = (self.w_hs - square_size)/2
         square_pos_y = self.img_pos_h
+        
+        offset = 0 
 
         #set match image
         if match_iterations_enable:
             if self.side_nonmatch == "left":
-                square_pos_x =  self.img_pos_w  + match_iterations[self.niter] 
+                square_pos_x =  self.img_pos_w  + offset  + match_iterations[self.niter] 
             else:
-                square_pos_x =  self.img_pos_w  - match_iterations[self.niter] 
+                square_pos_x =  self.img_pos_w  - offset - match_iterations[self.niter] 
         else:
-            square_pos_x = 0
+            if self.side_nonmatch == "left":
+                square_pos_x =  self.img_pos_w  + square_size/2 + nonmatch_distance
+            else:
+                square_pos_x =  self.img_pos_w  - square_size/2 - nonmatch_distance
         self.img = ImageTk.PhotoImage(Image.open(self.match_image))
         self.canvas.create_image(square_pos_x, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
 
         #set nonmatch image
         if self.side_nonmatch == "left":
-            pos_nonmatch = self.img_pos_w - nonmatch_distance
+            pos_nonmatch = self.img_pos_w - square_size/2 - nonmatch_distance
         else:
-            pos_nonmatch = self.img_pos_w + nonmatch_distance
+            pos_nonmatch = self.img_pos_w + square_size/2 + nonmatch_distance
 
         self.img2 = ImageTk.PhotoImage(Image.open(self.nonmatch_image))
         self.canvas.create_image(pos_nonmatch, self.img_pos_h, anchor=tk.NW, image=self.img2) 

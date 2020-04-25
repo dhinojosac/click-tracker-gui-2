@@ -4,10 +4,15 @@ from PIL import ImageTk, Image
 from pynput import mouse
 from time import sleep
 import random
+import os
+
+import pygame #test audio
+pygame.init()
 
 IS_PC = True    # debug in pc
 if not IS_PC:
     import RPi.GPIO as GPIO
+    
 
 # Program class (do not modify!)
 class Program:
@@ -72,6 +77,14 @@ score_success_match = 0 # click success in match stage
 score_fail_match    = 0 # click fail in match stage
 nonmatch_iters = 0
 sides = ["left", "right"]
+
+#Audio functions
+def play_success_soud():
+    pass
+
+def play_fail_sound():
+    pygame.mixer.music.load("sounds/bleep.wav") #test sound
+    pygame.mixer.music.play(0)
 
 #Function that indicates if the box was pressed or not. The time of the led on
 # is added to the time between the appearence of squares.
@@ -142,6 +155,7 @@ def on_click(x, y, button, pressed):
 
             print(">> CLICK FAILED!")
             led_failed()
+            play_fail_sound() #test fail audio
         if not success_pass:
             app.nextStage()
         app.runStage()

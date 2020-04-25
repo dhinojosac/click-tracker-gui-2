@@ -44,16 +44,16 @@ side_nonmatch  = "right"        #left or right, when side_nonmatch_random is Fal
 
 match_iterations_enable = True  #enable iteration in nonmatch stage using differents distances 
 nonmatch_distance       = 100    #fixed distance nonmatch image 250 px, when match_iterations_enable is False
-match_iterations        = [0, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
+match_iterations        = [100, 125, 150, 175, 200, 225, 250] #distances between images match/nonmatch stage
 
 #trials
 primary_pair_images     = [IMAGE_MATCH_PRIM, IMAGE_NONMATCH_PRIM]   #pair of images ratio 1
 secondary_pair_images   = [IMAGE_MATCH_SEC, IMAGE_NONMATCH_SEC]     #pair of images ratio 2
-trials                  = 5                         #Number of trial of a session [Set 1 for 1 trial]
-trials_ratio            =  [3,2]                    #ratio of trials [ only first parameter is taken into account to get ratio]
+trials                  = 3                         #Number of trial of a session [Set 1 for 1 trial]
+trials_ratio            =  [2,1]                    #ratio of trials [ only first parameter is taken into account to get ratio]
 trials_ratio_random     = True                      #ratio secuencial or random
 fix_side_trials         = False                     #fix side after each trial
-time_intertrieals       =  3                        #time in secods between trials
+time_intertrieals       = 2                         #time in secods between trials
 
 #Configure GPIO control  
 SUCCESS_LED = 17          # Set pin 17 succes led
@@ -68,6 +68,8 @@ square_pos_x = None
 square_pos_y = None
 clicked = False
 score = 0
+score_success_match = 0 # click success in match stage
+score_fail_match    = 0 # click fail in match stage
 nonmatch_iters = 0
 sides = ["left", "right"]
 
@@ -98,14 +100,24 @@ def led_failed():
 
 # On click Callback
 def on_click(x, y, button, pressed):
-    global square_pos_x, square_pos_y, score, clicked, app
+    global square_pos_x, square_pos_y, score, score_success_match, score_fail_match, clicked, app
+
     if button == mouse.Button.left and pressed==True:   #check if left click is pressed
+
         print("Left click: {},{}".format(x,y))          #debug: show cursor position on console
-        print("Box in :{},{}".format(square_pos_x, square_pos_y)) #debug boxclick
+        print("Box  click: {},{}".format(square_pos_x, square_pos_y)) #debug boxclick
+        print("Stage: {}".format(app.program.steps[app.stage]))
+        
         if x>= square_pos_x-click_error and x<= square_pos_x+square_size+click_error and y>= square_pos_y-click_error and y<= square_pos_y+square_size+click_error : #check if click is inside square+error area.
-            score=score+1                                   #add 1 to score if is a right click, inside a square+error area.
-            print(">> CLICK INSIDE TARGET!")
+            score+=1                                   #add 1 to score if is a right click, inside a square+error area.
+            
+            if app.program.steps[app.stage] == "match":
+                score_success_match+=1
+                print("Match Score:{}".format(score_success_match)) #debug match score
+
+            print(">> CLICK SUCCESS") #debug click
             led_success()
+
             if match_iterations_enable and app.program.steps[app.stage] == "match": #interation in match/nonmatch stage
                 app.addIterMatch()
                 if app.niter >= len(match_iterations):  # detects max iterations
@@ -118,10 +130,16 @@ def on_click(x, y, button, pressed):
                         app.calculateSide()         # recalculate random side
                     app.restartTrialState()
                     
-
             elif success_pass:
                 app.nextStage()
+            
+        
+        #fail click
         else:
+            if app.program.steps[app.stage] == "match":
+                score_fail_match+=1
+                print("Match Fail Score:{}".format(score_fail_match)) #debug match fail score
+
             print(">> CLICK FAILED!")
             led_failed()
         if not success_pass:
@@ -130,6 +148,7 @@ def on_click(x, y, button, pressed):
 
     if button == mouse.Button.right and pressed ==True: #check if right click is pressed
         print("Right click: {},{}".format(x,y))         #debug: show cursor position on console
+
 
 # Application Tk
 class PerceptionApp(tk.Tk):
@@ -202,7 +221,6 @@ class PerceptionApp(tk.Tk):
         sleep(time_intertrieals) # time between trials
         self.getTrialImage()
 
-
     def getRatioTrials(self):
         self.ratio = trials_ratio[0]
     
@@ -231,7 +249,7 @@ class PerceptionApp(tk.Tk):
             self.counter = self.counter + 1 # ticks every 500 ms
         #print("stage:{} program:{}  counter:{}".format(self.stage, self.program.steps[self.stage], self.counter)) #debug
         if self.counter >= self.program.times[self.stage]*2: # compare times
-            print("[!] Next Stage") #debug
+            #print("[!] Next Stage") #debug
             self.nextStage()
             if self.stage>= self.program.len: #check stages limit
                 self.finishMouseListener()
@@ -250,22 +268,22 @@ class PerceptionApp(tk.Tk):
         if self.stage>= self.program.len:
             self.finishMouseListener()
             self.destroy()
-        print(self.stage)
+        #print(self.stage) #debug stage
 
     # Shows warning stage
     def show_warning(self):
-        print("[->]WARNING")
+        print("\n[->]WARNING")
         global square_pos_x, square_pos_y
         colorval            = [255,0,0]
         rcol =  colorval            # square color
         colorval = "#%02x%02x%02x" % (rcol[0], rcol[1], rcol[2]) # rgb to hexadecimal format
-        square_pos_x = (self.w_ws-square_size)/2
-        square_pos_y = (self.w_hs-square_size)/2
+        square_pos_x = int((self.w_ws-square_size)/2)
+        square_pos_y = int((self.w_hs-square_size)/2)
         self.canvas.create_rectangle(square_pos_x, square_pos_y, square_pos_x+square_size, square_pos_y+square_size, fill=colorval) #create blue square
 
     # Shows sample stage
     def show_sample(self):
-        print("[->]SAMPLE")
+        print("\n[->]SAMPLE")
         self.img = ImageTk.PhotoImage(Image.open(self.match_image))
         self.img_pos_w = (self.w_ws - square_size)/2
         self.img_pos_h = (self.w_hs - square_size)/2
@@ -275,7 +293,7 @@ class PerceptionApp(tk.Tk):
     # Shows Match/Nonmatch stage
     def show_match(self):
         global square_pos_x, square_pos_y
-        print("[->]MATCH")
+        print("\n[->]MATCH")
 
         #center position 
         self.img_pos_w = (self.w_ws - square_size)/2
@@ -287,14 +305,14 @@ class PerceptionApp(tk.Tk):
         #set match image
         if match_iterations_enable:
             if self.side_nonmatch == "left":
-                square_pos_x =  self.img_pos_w  + offset  + match_iterations[self.niter] 
+                square_pos_x =  int(self.img_pos_w  + offset  + match_iterations[self.niter] )
             else:
-                square_pos_x =  self.img_pos_w  - offset - match_iterations[self.niter] 
+                square_pos_x =  int(self.img_pos_w  - offset - match_iterations[self.niter] )
         else:
             if self.side_nonmatch == "left":
-                square_pos_x =  self.img_pos_w  + square_size/2 + nonmatch_distance
+                square_pos_x =  int(self.img_pos_w  + square_size/2 + nonmatch_distance)
             else:
-                square_pos_x =  self.img_pos_w  - square_size/2 - nonmatch_distance
+                square_pos_x =  int(self.img_pos_w  - square_size/2 - nonmatch_distance)
         self.img = ImageTk.PhotoImage(Image.open(self.match_image))
         self.canvas.create_image(square_pos_x, self.img_pos_h, anchor=tk.NW, image=self.img) 
         self.canvas.image = self.img
@@ -312,7 +330,7 @@ class PerceptionApp(tk.Tk):
         
     # Shows blank stage
     def show_blank(self):
-        print("[->]BLANK")
+        print("\n[->]BLANK")
         self.canvas.delete("all")
     
     # Enable mouse listener
@@ -329,5 +347,7 @@ class PerceptionApp(tk.Tk):
 app= PerceptionApp()
 app.mainloop()
 print("\n*****************************************")
-print("[!] Your score is:{}".format(score))
+print("[!] Your Total Score is:{}".format(score))
+print("[!] Your Match Susccess Score is:{}".format(score_success_match))
+print("[!] Your Match Failed Score is:{}".format(score_fail_match))
 print("*****************************************\n")

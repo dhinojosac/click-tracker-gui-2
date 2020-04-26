@@ -5,6 +5,7 @@ from pynput import mouse
 from time import sleep
 import random
 import os
+import csv #expor data to excel
 
 import pygame #test audio
 pygame.init()
@@ -34,6 +35,8 @@ program2 = Program(program2_steps, program2_times) # Init program 2
 
 # public variables (edit as you wish)
 USE_PROGRAM = program1
+
+CREATE_CSV_FILE = True #to export data via CSV file
 
 wait_click   = True   # wait click to pass to other stage
 success_pass = True # pass to next stage only if you click in the box
@@ -77,6 +80,20 @@ score_success_match = 0 # click success in match stage
 score_fail_match    = 0 # click fail in match stage
 nonmatch_iters = 0
 sides = ["left", "right"]
+
+#create csv file
+if CREATE_CSV_FILE:
+    f = open("data.csv","w")
+
+def add_click_to_csv(rows):
+    if CREATE_CSV_FILE:
+        writer = csv.writer(f)
+        writer.writerows(rows)
+
+if CREATE_CSV_FILE:      #add label 
+    mrow = [["success","num trial","num iter","box_x","box_y", "click x", "click_y"]]
+    add_click_to_csv( map(lambda x:[x], mrow) ) #debug write csv data
+
 
 #Audio functions
 def play_success_soud():
@@ -127,6 +144,8 @@ def on_click(x, y, button, pressed):
             if app.program.steps[app.stage] == "match":
                 score_success_match+=1
                 print("Match Score:{}".format(score_success_match)) #debug match score
+                mrow = [["1",app.trials,app.niter,square_pos_x,square_pos_y, x, y]]
+                add_click_to_csv( map(lambda x:[x], mrow) ) #debug write csv data
 
             print(">> CLICK SUCCESS") #debug click
             led_success()
@@ -152,6 +171,8 @@ def on_click(x, y, button, pressed):
             if app.program.steps[app.stage] == "match":
                 score_fail_match+=1
                 print("Match Fail Score:{}".format(score_fail_match)) #debug match fail score
+                mrow = [["0",app.trials,app.niter, square_pos_x,square_pos_y, x , y ]]
+                add_click_to_csv( map(lambda x:[x], mrow) ) #debug write csv data
 
             print(">> CLICK FAILED!")
             led_failed()
@@ -365,3 +386,6 @@ print("[!] Your Total Score is:{}".format(score))
 print("[!] Your Match Susccess Score is:{}".format(score_success_match))
 print("[!] Your Match Failed Score is:{}".format(score_fail_match))
 print("*****************************************\n")
+
+if CREATE_CSV_FILE:
+    f.close()

@@ -6,6 +6,7 @@ from time import sleep
 import random
 import os
 import csv #expor data to excel
+import datetime
 
 import pygame #test audio
 pygame.init()
@@ -81,6 +82,10 @@ score_fail_match    = 0 # click fail in match stage
 nonmatch_iters = 0
 sides = ["left", "right"]
 
+#get time 
+def get_time():
+    return datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+
 #create csv file
 if CREATE_CSV_FILE:
     f = open("data.csv","w")
@@ -91,7 +96,7 @@ def add_click_to_csv(rows):
         writer.writerows(rows)
 
 if CREATE_CSV_FILE:      #add label 
-    mrow = [["success","num trial","num iter","box_x","box_y", "click x", "click_y"]]
+    mrow = [["timestamp","success","num trial","num iter","box_x","box_y", "click x", "click_y"]]
     add_click_to_csv( map(lambda x:[x], mrow) ) #debug write csv data
 
 
@@ -144,7 +149,7 @@ def on_click(x, y, button, pressed):
             if app.program.steps[app.stage] == "match":
                 score_success_match+=1
                 print("Match Score:{}".format(score_success_match)) #debug match score
-                mrow = [["1",app.trials,app.niter,square_pos_x,square_pos_y, x, y]]
+                mrow = [[get_time(),"1",app.trials,app.niter,square_pos_x,square_pos_y, x, y]]
                 add_click_to_csv( map(lambda x:[x], mrow) ) #debug write csv data
 
             print(">> CLICK SUCCESS") #debug click
@@ -171,7 +176,7 @@ def on_click(x, y, button, pressed):
             if app.program.steps[app.stage] == "match":
                 score_fail_match+=1
                 print("Match Fail Score:{}".format(score_fail_match)) #debug match fail score
-                mrow = [["0",app.trials,app.niter, square_pos_x,square_pos_y, x , y ]]
+                mrow = [[get_time(),"0",app.trials,app.niter, square_pos_x,square_pos_y, x , y ]]
                 add_click_to_csv( map(lambda x:[x], mrow) ) #debug write csv data
 
             print(">> CLICK FAILED!")

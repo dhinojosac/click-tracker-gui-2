@@ -7,6 +7,8 @@ import random
 import os
 import csv #expor data to excel
 import datetime
+import socket 
+import sys
 
 import pygame #test audio
 pygame.init()
@@ -14,7 +16,10 @@ pygame.init()
 IS_PC = True    # debug in pc
 if not IS_PC:
     import RPi.GPIO as GPIO
-    
+
+#Server parameters 
+host = "127.0.0.1"
+port = 8765
 
 # Program class (do not modify!)
 class Program:
@@ -36,6 +41,8 @@ program2 = Program(program2_steps, program2_times) # Init program 2
 
 # public variables (edit as you wish)
 USE_PROGRAM = program1
+
+USE_WITH_SERVER = True #Indicates if it uses socket server
 
 CREATE_CSV_FILE = True #to export data via CSV file
 
@@ -82,6 +89,15 @@ score_fail_match    = 0 # click fail in match stage
 nonmatch_iters = 0
 sides = ["left", "right"]
 
+#connect to server 
+if USE_WITH_SERVER:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((host, port))
+    except ConnectionRefusedError:
+        print("************************************\n\n[!] You must make sure the server is running or change USE_WITH_SERVER to False\n\n************************************")
+        sys.exit()
+
 #get time 
 def get_time():
     return datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
@@ -99,6 +115,28 @@ if CREATE_CSV_FILE:      #add label
     mrow = [["timestamp","success","num trial","num iter","box_x","box_y", "click x", "click_y"]]
     add_click_to_csv( map(lambda x:[x], mrow) ) #debug write csv data
 
+#Server functions
+def send_socket_data(outdata):
+    if USE_WITH_SERVER:
+        s.sendall(outdata.encode())
+        data = s.recv(1024)
+        if not data: return
+        print("Server sent:",data.decode())
+
+def send_socket_start():
+    if USE_WITH_SERVER:
+        s.sendall("START AT {}".format(get_time()).encode()) #Send start command
+
+def send_socket_finish():
+    if USE_WITH_SERVER:
+        s.sendall("FINISH AT {}".format(get_time()).encode()) #Send finish command
+
+def send_socket_score():
+    s.sendall("Total Score:{}".format(score).encode())
+    time.sleep(.5)
+    s.sendall("Match Susccess Score:{}".format(score_success_match).encode())
+    time.sleep(.5)
+    s.sendall("Match Failed Score:{}".format(score_fail_match).encode())
 
 #Audio functions
 def play_success_soud():
@@ -147,10 +185,12 @@ def on_click(x, y, button, pressed):
             score+=1                                   #add 1 to score if is a right click, inside a square+error area.
             
             if app.program.steps[app.stage] == "match":
+                ts = get_time()
                 score_success_match+=1
                 print("Match Score:{}".format(score_success_match)) #debug match score
-                mrow = [[get_time(),"1",app.trials,app.niter,square_pos_x,square_pos_y, x, y]]
+                mrow = [[ts,"1",app.trials,app.niter,square_pos_x,square_pos_y, x, y]] #8 vars
                 add_click_to_csv( map(lambda x:[x], mrow) ) #debug write csv data
+                send_socket_data("{}|{}|{}|{}|{}|{}|{}|{}".format(ts,"success",app.trials,app.niter,square_pos_x,square_pos_y, x, y)) #send data over socket
 
             print(">> CLICK SUCCESS") #debug click
             led_success()
@@ -174,10 +214,12 @@ def on_click(x, y, button, pressed):
         #fail click
         else:
             if app.program.steps[app.stage] == "match":
+                ts = get_time()
                 score_fail_match+=1
                 print("Match Fail Score:{}".format(score_fail_match)) #debug match fail score
-                mrow = [[get_time(),"0",app.trials,app.niter, square_pos_x,square_pos_y, x , y ]]
+                mrow = [[ts,"0",app.trials,app.niter, square_pos_x,square_pos_y, x , y ]]
                 add_click_to_csv( map(lambda x:[x], mrow) ) #debug write csv data
+                send_socket_data("{}|{}|{}|{}|{}|{}|{}|{}".format(ts,"fail",app.trials,app.niter,square_pos_x,square_pos_y, x, y)) #send data over socket
 
             print(">> CLICK FAILED!")
             led_failed()
@@ -383,9 +425,11 @@ class PerceptionApp(tk.Tk):
         self.mouse_listener.stop()   #stop listener when program was ended
 
     
-
+send_socket_start()
 app= PerceptionApp()
 app.mainloop()
+send_socket_finish() 
+send_socket_score()
 print("\n*****************************************")
 print("[!] Your Total Score is:{}".format(score))
 print("[!] Your Match Susccess Score is:{}".format(score_success_match))

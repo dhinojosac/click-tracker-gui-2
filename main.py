@@ -128,15 +128,17 @@ def send_socket_start():
         s.sendall("START AT {}".format(get_time()).encode()) #Send start command
 
 def send_socket_finish():
+    sleep(2)
     if USE_WITH_SERVER:
         s.sendall("FINISH AT {}".format(get_time()).encode()) #Send finish command
 
 def send_socket_score():
-    s.sendall("Total Score:{}".format(score).encode())
-    time.sleep(.5)
-    s.sendall("Match Susccess Score:{}".format(score_success_match).encode())
-    time.sleep(.5)
-    s.sendall("Match Failed Score:{}".format(score_fail_match).encode())
+    if USE_WITH_SERVER:
+        s.sendall("Total Score:{}".format(score).encode())
+        sleep(.5)
+        s.sendall("Match Susccess Score:{}".format(score_success_match).encode())
+        sleep(.5)
+        s.sendall("Match Failed Score:{}".format(score_fail_match).encode())
 
 #Audio functions
 def play_success_soud():

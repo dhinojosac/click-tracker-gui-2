@@ -10,12 +10,23 @@ import datetime
 import socket 
 import sys
 
+PI_CAMERA = True
+
+#camera function
+def get_file_name():  
+    return datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]+".h264"
+
 import pygame #test audio
 pygame.init()
 
 IS_PC = True    # debug in pc
 if not IS_PC:
     import RPi.GPIO as GPIO
+
+if PI_CAMERA:
+    import picamera # pi camera
+    cam = picamera.PiCamera()
+    fileName = get_file_name()  
 
 #Server parameters 
 host = "127.0.0.1"
@@ -147,6 +158,8 @@ def play_success_soud():
 def play_fail_sound():
     pygame.mixer.music.load("sounds/bleep.wav") #test sound
     pygame.mixer.music.play(0)
+
+
 
 #Function that indicates if the box was pressed or not. The time of the led on
 # is added to the time between the appearence of squares.
@@ -426,12 +439,26 @@ class PerceptionApp(tk.Tk):
     def finishMouseListener(self):
         self.mouse_listener.stop()   #stop listener when program was ended
 
-    
+#start camera video
+if PI_CAMERA:
+    fileName = get_file_name()  
+    cam.start_recording(fileName)  
+
+#start socket transmission
 send_socket_start()
+
+#start app
 app= PerceptionApp()
 app.mainloop()
+
+#finish socket
 send_socket_finish() 
 send_socket_score()
+
+#finish camera video
+if PI_CAMERA:
+    cam.stop_preview()
+    cam.stop_recording()
 print("\n*****************************************")
 print("[!] Your Total Score is:{}".format(score))
 print("[!] Your Match Susccess Score is:{}".format(score_success_match))
@@ -440,3 +467,4 @@ print("*****************************************\n")
 
 if CREATE_CSV_FILE:
     f.close()
+
